@@ -3,7 +3,7 @@ require 'ostruct'
 
 describe ActiveModel::Validations::HashBlockValidator do
   context "#validates_hash_values" do
-    class ValidatorBlockHashTestOne
+    class ValidatorBlockHashBase
       include ActiveModel::Validations
 
       def initialize(h={})
@@ -17,7 +17,8 @@ describe ActiveModel::Validations::HashBlockValidator do
       def my_attr=(val)
         @my_attr = val
       end
-
+    end
+    class ValidatorBlockHashTestOne < ValidatorBlockHashBase
       validates_hash_keys :my_attr do
         validates :first_key, presence: true
         validates :second_key, inclusion: { in: [1, 2, 3, 4] }
@@ -47,13 +48,28 @@ describe ActiveModel::Validations::HashBlockValidator do
         record = ValidatorBlockHashTestOne.new(my_attr: 4)
         expect { record.valid? }.to raise_error(TypeError, 'my_attr is not a Hash')
       end
+
+      context "options[:flatten_errors] true" do
+        class ValidatorBlockHashTestOneWithOptions < ValidatorBlockHashBase
+          validates_hash_keys :my_attr, flatten_errors: true do
+            validates :first_key, presence: true
+          end
+        end
+
+        it "adds error for invalid value" do
+          record = ValidatorBlockHashTestOneWithOptions.new(my_attr: { first_key: nil })
+          record.valid?
+          messages = { first_key: ["can't be blank"] }
+          record.errors.messages.should eq messages
+        end
+      end
     end
 
     describe "clearing ValidateableHash validators" do
       it "clears validators after validation" do
         record = ValidatorBlockHashTestOne.new(my_attr: { first_key: 2, second_key: 4 })
         record.valid?
-        ValidateableHash.validators.should be_empty        
+        ValidateableHash.validators.should be_empty
       end
     end
   end

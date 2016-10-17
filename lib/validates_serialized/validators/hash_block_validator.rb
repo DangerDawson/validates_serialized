@@ -34,16 +34,12 @@ module ActiveModel
             exception = ActiveModel::StrictValidationFailed if exception == true
             raise exception, message
           end
-          record.errors.add(attribute, message)
+          flatten_errors? ? record.errors.add(key, text) : record.errors.add(attribute, message)
         end
       end
 
-      def get_message_from_error_hash(error_hash)
-        message = nil
-        error_hash.each_pair do |key, array|
-          message = array.join(", ")
-        end
-        message
+      def flatten_errors?
+        options[:flatten_errors]
       end
     end
 
